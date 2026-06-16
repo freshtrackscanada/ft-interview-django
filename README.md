@@ -4,24 +4,19 @@ Take-home / pairing boilerplate for a **Fresh Tracks Canada** interview.
 
 A working end-to-end hotel search:
 
-- **Backend** — Django 5 + Django REST Framework, talks to the [Amadeus Hotel Search API](https://developers.amadeus.com/self-service/category/hotels) sandbox.
+- **Backend** — Django 5 + Django REST Framework. Ships with a mock hotel-search client that returns Amadeus-shaped data; swap in a real provider when you have credentials.
 - **Frontend** — Next.js 14 (App Router) + Tailwind, with a search form and a results list.
 - **Database** — PostgreSQL 16. Hotel searches are persisted so you have something concrete to extend.
 - **Everything boots with one command.**
+
+> **Heads up on Amadeus.** Amadeus is shutting down its self-service developer portal in July 2026. This boilerplate defaults to **mock mode** with in-process fixtures so the demo always works. The mock returns the same response shape as the real Amadeus API, so swapping in a real provider later is a one-file change.
 
 ---
 
 ## Quick start
 
 ```bash
-# 1. Get free Amadeus sandbox credentials (takes 2 min)
-#    → https://developers.amadeus.com/register
-#    Create a "Self-Service" app, copy its API Key + Secret.
-
 cp .env.example .env
-# Open .env and paste your AMADEUS_CLIENT_ID / AMADEUS_CLIENT_SECRET.
-
-# 2. Boot it.
 docker compose up --build
 ```
 
@@ -30,7 +25,7 @@ Then open:
 - Frontend → <http://localhost:3000>
 - Backend health → <http://localhost:8000/api/health>
 
-Try a search with `cityCode=PAR` (Paris) — the Amadeus sandbox has the richest test data there.
+Try a search with `cityCode=PAR` (Paris). Mock cities available out of the box: **PAR, LON, NYC, MAD**. Other city codes return an empty list.
 
 ---
 
@@ -42,7 +37,22 @@ Try a search with `cityCode=PAR` (Paris) — the Amadeus sandbox has the richest
 | `GET /api/hotels/search?cityCode=PAR&checkInDate=YYYY-MM-DD&checkOutDate=YYYY-MM-DD&adults=1` | Resolves hotels in `cityCode`, then fetches Amadeus offers for them. Logs the search to Postgres. |
 | `GET /api/hotels/history` | Last 20 searches from Postgres. |
 
-The Amadeus client lives at [`backend/hotels/amadeus.py`](backend/hotels/amadeus.py) — it handles OAuth token caching and batches hotel-IDs into 20-at-a-time offer requests. The view is in [`backend/hotels/views.py`](backend/hotels/views.py).
+The view in [`backend/hotels/views.py`](backend/hotels/views.py) calls `get_client()` from [`backend/hotels/amadeus.py`](backend/hotels/amadeus.py), which returns either:
+
+- **MockAmadeusClient** ([`mock_amadeus.py`](backend/hotels/mock_amadeus.py)) — default. Reads fixtures from [`mock_data.py`](backend/hotels/mock_data.py) and synthesises Amadeus-shaped offer responses.
+- **AmadeusClient** ([`amadeus.py`](backend/hotels/amadeus.py)) — handles OAuth token caching and batches hotel-IDs into 20-at-a-time offer requests. Activated by `AMADEUS_MODE=live` in `.env`. The class is provider-shaped so you can point `AMADEUS_BASE_URL` at any compatible API.
+
+### Switching to a real provider
+
+```bash
+# .env
+AMADEUS_MODE=live
+AMADEUS_CLIENT_ID=…
+AMADEUS_CLIENT_SECRET=…
+AMADEUS_BASE_URL=https://your-provider.example.com
+```
+
+If your provider's response shape differs from Amadeus, edit the parsing in `amadeus.py` — the rest of the stack (views, DB, frontend) stays the same.
 
 ---
 
@@ -58,7 +68,9 @@ The Amadeus client lives at [`backend/hotels/amadeus.py`](backend/hotels/amadeus
 │   ├── requirements.txt
 │   ├── ft_backend/             # Django project (settings, urls)
 │   └── hotels/                 # the app
-│       ├── amadeus.py          # Amadeus REST client
+│       ├── amadeus.py          # AmadeusClient + get_client() factory
+│       ├── mock_amadeus.py     # MockAmadeusClient (default)
+│       ├── mock_data.py        # in-process hotel fixtures
 │       ├── views.py            # /search + /history endpoints
 │       ├── models.py           # HotelSearch model (audit log)
 │       ├── serializers.py
@@ -84,7 +96,7 @@ The boilerplate is intentionally thin. Pick whichever your interviewer suggests,
 - Add **filters** (price range, board type, rating) on the results page.
 - Replace the SSR-less client component with a **React Server Component** that streams results.
 - Add **tests** (pytest + DRF APIClient on the backend, Playwright on the frontend).
-- Cache Amadeus responses (Redis, or `cache_page`) — the sandbox is rate-limited.
+- Add **caching** (Redis, or DRF's `cache_page`) for the search endpoint — useful even with the mock, essential against a real rate-limited provider.
 - Add **observability**: structured logs, a `/metrics` Prometheus endpoint, traces.
 
 ---
@@ -113,9 +125,9 @@ npm run dev
 
 ---
 
-## Notes on Amadeus
+## Notes
 
-- The sandbox lives at `https://test.api.amadeus.com`.
-- Tokens are valid ~30 minutes; the client caches them on the instance.
-- Hotel data is sparse outside major cities. **PAR / LON / NYC / MAD** are the most reliable for testing.
-- If a search returns 0 results, try a date 1–2 weeks in the future — past dates always 400.
+- The mock dataset lives in [`backend/hotels/mock_data.py`](backend/hotels/mock_data.py) — add cities or hotels by appending rows.
+- Mock prices are deterministically jittered (±15%) by hotel-ID + check-in date, so prices look "real" but the same query always returns the same answer.
+- The mock honors `adults` (small uplift) and `nights` (linear multiplier).
+- If you turn on `AMADEUS_MODE=live` while the real Amadeus portal still exists, tokens are valid ~30 minutes and the client caches them on the instance.

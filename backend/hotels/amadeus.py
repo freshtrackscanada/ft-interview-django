@@ -7,15 +7,33 @@ Implements only what the hotel-search demo needs:
 
 Docs:
   https://developers.amadeus.com/self-service/category/hotels
+
+NOTE: Amadeus is announcing the self-service portal shutdown for July 2026.
+The default mode for this boilerplate is ``mock`` — see
+``hotels/mock_amadeus.py``. Set ``AMADEUS_MODE=live`` in ``.env`` if you have
+credentials for a working provider with an Amadeus-compatible response shape.
 """
 from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Protocol
 
 import requests
 from django.conf import settings
+
+from .mock_amadeus import MockAmadeusClient
+
+
+class HotelSearchClient(Protocol):
+    def hotels_by_city(self, city_code: str, limit: int = 20) -> list[dict[str, Any]]: ...
+    def hotel_offers(
+        self,
+        hotel_ids: list[str],
+        check_in_date: str,
+        check_out_date: str,
+        adults: int = 1,
+    ) -> list[dict[str, Any]]: ...
 
 
 class AmadeusError(Exception):
@@ -134,3 +152,14 @@ class AmadeusClient:
                 continue
             results.extend(data.get("data", []) or [])
         return results
+
+
+def get_client() -> HotelSearchClient:
+    """Return the configured hotel-search client.
+
+    ``AMADEUS_MODE=mock`` (default) → fixtures in ``mock_amadeus.py``.
+    ``AMADEUS_MODE=live`` → real Amadeus client (requires credentials).
+    """
+    if settings.AMADEUS_MODE == "live":
+        return AmadeusClient()
+    return MockAmadeusClient()

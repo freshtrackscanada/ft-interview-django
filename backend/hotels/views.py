@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from .amadeus import AmadeusClient, AmadeusError
+from .amadeus import AmadeusError, get_client
 from .models import HotelSearch
 from .serializers import HotelSearchSerializer
 
@@ -53,7 +53,7 @@ def search_hotels(request):
     if errors:
         return Response({"errors": errors}, status=status.HTTP_400_BAD_REQUEST)
 
-    client = AmadeusClient()
+    client = get_client()
     try:
         hotels = client.hotels_by_city(city_code, limit=limit)
         hotel_ids = [h["hotelId"] for h in hotels if h.get("hotelId")]

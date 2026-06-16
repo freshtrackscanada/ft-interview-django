@@ -101,3 +101,5 @@ REST_FRAMEWORK = {
 AMADEUS_CLIENT_ID = os.environ.get("AMADEUS_CLIENT_ID", "")
 AMADEUS_CLIENT_SECRET = os.environ.get("AMADEUS_CLIENT_SECRET", "")
 AMADEUS_BASE_URL = os.environ.get("AMADEUS_BASE_URL", "https://test.api.amadeus.com")
+# 'mock' (default) → in-process fixtures; 'live' → real Amadeus credentials.
+AMADEUS_MODE = os.environ.get("AMADEUS_MODE", "mock").lower()
