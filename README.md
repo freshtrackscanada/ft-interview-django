@@ -25,6 +25,10 @@ Then open:
 - Frontend → <http://localhost:3000>
 - Backend health → <http://localhost:8000/api/health>
 
+**Already using 3000, 8000 or 5432?** Set `FRONTEND_HOST_PORT`, `BACKEND_HOST_PORT` or
+`POSTGRES_HOST_PORT` in your `.env`. Only the host side moves, and the frontend's API URL
+and the backend's CORS origin follow automatically — you don't need to change anything else.
+
 Try a search with `cityCode=PAR` (Paris). Mock cities available out of the box: **PAR, LON, NYC, MAD**. Other city codes return an empty list.
 
 ---
