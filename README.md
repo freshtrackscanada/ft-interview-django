@@ -117,14 +117,14 @@ docker compose up db
 cd backend
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-export POSTGRES_HOST=localhost
+export POSTGRES_HOST=localhost POSTGRES_PORT=5432   # match POSTGRES_HOST_PORT if you changed it
 python manage.py migrate
 python manage.py runserver
 
-# Frontend
+# Frontend — needs Bun (curl -fsSL https://bun.sh/install | bash)
 cd frontend
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 ---

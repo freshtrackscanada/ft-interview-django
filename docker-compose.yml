@@ -46,7 +46,7 @@ services:
   frontend:
     build:
       context: ./frontend
-    command: npm run dev
+    command: bun run dev
     environment:
       # Browser fetches the host-mapped backend port; follows BACKEND_HOST_PORT.
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:${BACKEND_HOST_PORT:-8000}}
